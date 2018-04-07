@@ -26,6 +26,9 @@ namespace op {
 			capacity_count = count * sizeof(Dtype);
 			data = new Dtype[count];
 			data_self = true;
+			for (auto i = 0; i < count; ++i) {
+				data[i] = 0.0f;
+			}
 		}
 
 		CaffeBlob() {

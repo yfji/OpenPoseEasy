@@ -42,8 +42,8 @@ namespace op {
 		~CaffeWrapper();
 
 	public:
-		const int im_w = 656;
-		const int im_h = 368;
+		const int im_w = 256;// 656;
+		const int im_h = 256;// 368;
 		float scale_x;
 		float scale_y;
 
@@ -58,6 +58,7 @@ namespace op {
 		std::shared_ptr<Net<Dtype>> net_;
 		cv::Size input_size_;
 	private:
+		cv::Mat getImageAffine(cv::Mat& img, const cv::Size& baseSize);
 		cv::Mat getImagePadResize(cv::Mat& img, const cv::Size& baseSize);
 		cv::Mat getImageResize(cv::Mat& img, const cv::Size& baseSize);
 	};
@@ -69,7 +70,7 @@ namespace op {
 		const string& caffemodel_file,
 		const string& mean_file = "")
 	{
-		Caffe::set_mode(Caffe::GPU);
+		Caffe::set_mode(caffe::Caffe::GPU);
 
 		/* Load the network. */
 		net_.reset(new Net<float>(prototxt_file, caffe::TEST));
@@ -118,9 +119,10 @@ namespace op {
 	{
 		cv::Mat inputImage;
 		if (im.cols != im_w || im.rows != im_h) {
-			im = getImagePadResize(im, cv::Size(im_w, im_h));
+			im = getImageAffine(im, cv::Size(im_w, im_h));
+			//imshow("affine", im);
 		}
-		im.convertTo(inputImage, CV_32F, 1.0 / 255, -0.5);
+		im.convertTo(inputImage, CV_32F, 1.0 / 256.0, -0.5);
 		CHECK(net_->has_blob(input_name)) << input_name << " does not exist. Please check";
 
 		boost::shared_ptr<Blob<Dtype>> input_layer = net_->blob_by_name(input_name);
@@ -128,6 +130,7 @@ namespace op {
 		net_->Reshape();
 		int num_channels = input_layer->channels();
 		Dtype* input_data = input_layer->mutable_cpu_data();
+		//cudaMemcpy(input_data, inputData, upImpl->mNetInputMemory, cudaMemcpyHostToDevice);
 		int offset = im_w*im_h;
 		vector<cv::Mat> input_channels(num_channels);
 		for (auto i = 0; i < num_channels; ++i) {
@@ -135,7 +138,7 @@ namespace op {
 			input_data += offset;
 		}
 		cv::split(inputImage,input_channels);
-		net_->Forward();
+		net_->ForwardFrom(0);
 	}
 
 	template<typename Dtype>
@@ -171,6 +174,24 @@ namespace op {
 			net_output->capacity_count = net_output->count * sizeof(Dtype);
 			net_output->data = out_data;
 		}
+	}
+
+	template<typename Dtype>
+	inline cv::Mat CaffeWrapper<Dtype>::getImageAffine(cv::Mat & img, const cv::Size & baseSize)
+	{
+		float ratio_w = 1.0* img.cols / baseSize.width;
+		float ratio_h = 1.0* img.rows / baseSize.height;
+		float ratio = ratio_w > ratio_h ? ratio_w : ratio_h;
+		cv::Mat affineMat = cv::Mat::eye(2, 3, CV_32F);
+		cv::Mat affined;
+		affineMat.at<float>(0, 0) = ratio;
+		affineMat.at<float>(1, 1) = ratio;
+
+		cv::warpAffine(img, affined, affineMat, baseSize, 
+			CV_INTER_LINEAR | CV_WARP_INVERSE_MAP, cv::BORDER_CONSTANT, cv::Scalar{ 0,0,0 });
+		scale_x = 1 / ratio;
+		scale_y = scale_x;
+		return affined;
 	}
 
 	template<typename Dtype>

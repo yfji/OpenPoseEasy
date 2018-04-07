@@ -438,7 +438,38 @@ namespace op {
 			thicknessLineRatioWRTCircle, renderThreshold, scale_x, scale_y);
 	}
 
-	void PoseEngine::keypointsFromImage(cv::Mat & im, vector<float>& keypoints, vector<int>& keypointShape)
+	void PoseEngine::renderKeypointsOnly(Mat & frame, const vector<float>& poseKeypoints, vector<int> keyshape, const std::vector<float> colors, const float renderThreshold, float scale_x, float scale_y, const bool blendOriginalFrame)
+	{
+		int numberKeypoints = keyshape[1];
+		const auto lineType = 8;
+		const auto shift = 0;
+		const auto numberColors = colors.size();
+		const auto thresholdRectangle = 0.1f;
+
+		for (auto person = 0; person < keyshape[0]; person++)
+		{
+			for (auto part = 0; part < numberKeypoints; part++)
+			{
+				const auto faceIndex = (person * numberKeypoints + part) * keyshape[2];
+				//if (part != 6)
+				//	continue;
+				//if (part == 6 || part == 7) {
+				//	cout << part<<" :" <<poseKeypoints[faceIndex]<<","<<poseKeypoints[faceIndex+1]<<","<< poseKeypoints[faceIndex + 2] << endl;
+				//}
+				if (poseKeypoints[faceIndex + 2] > renderThreshold)
+				{
+					const auto colorIndex = part * 3;
+					const cv::Scalar color{ colors[(colorIndex + 2) % numberColors],
+						colors[(colorIndex + 1) % numberColors],
+						colors[(colorIndex + 0) % numberColors] };
+					const cv::Point center{ intRound(poseKeypoints[faceIndex] * scale_x), intRound(poseKeypoints[faceIndex + 1] * scale_y) };
+					cv::circle(frame, center, 6, color, -1, lineType, shift);
+				}
+			}
+		}
+	}
+
+	cv::Mat PoseEngine::keypointsFromImage(cv::Mat & im, vector<float>& keypoints, vector<int>& keypointShape)
 	{
 		CaffeBlob<float> blob;
 		cv::Size baseSize(wrapper->im_w, wrapper->im_h);
@@ -463,19 +494,19 @@ namespace op {
 			input_data += baseSize.height*baseSize.width;
 		}
 
-		//cv::Mat hm = cv::Mat(baseSize.height, baseSize.width, CV_32F, input.data);
-		//cv::imshow("heatmap", hm);
-		//cv::waitKey();
-
-		nms(&input, &nms_out, 0.05);
-		connectBodyPartsCpu(keypoints, input.data, nms_out.data, baseSize, POSE_MAX_PEOPLE, 9, 0.05, 3, 0.4, 1, keypointShape);
+		nms(&input, &nms_out, 0.25);
+		connectBodyPartsCpu(keypoints, input.data, nms_out.data, baseSize, POSE_MAX_PEOPLE, 9, 0.25, 3, 0.4, 1, keypointShape);
 		/*
 		shape[0]: num_people
 		shape[1]: num_bodyparts(20)
 		shape[2]: 3
 		*/
-		renderPoseKeypointsCpu(canvas, keypoints, keypointShape, 0.05, 1.0/wrapper->scale_x, 1.0/wrapper->scale_y);
-		cv::imshow("render", canvas);
-		cv::waitKey();
+		//renderPoseKeypointsCpu(canvas, keypoints, keypointShape, 0.05, 1.0/wrapper->scale_x, 1.0/wrapper->scale_y);
+		renderKeypointsOnly(canvas, keypoints, keypointShape, POSE_COCO_COLORS_RENDER, 0.05, 1.0 / wrapper->scale_x, 1.0 / wrapper->scale_y);
+		for (auto i = 0,j=1; i < keypoints.size() && j<keypoints.size(); i+=3,j+=3) {
+			keypoints[i] /= wrapper->scale_x;
+			keypoints[j] /= wrapper->scale_y;
+		}
+		return canvas;
 	}
 }
