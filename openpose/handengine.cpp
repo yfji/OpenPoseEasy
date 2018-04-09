@@ -7,8 +7,9 @@ namespace op {
 		std::string prototxt_file = "I:/Develop/caffe/openpose_caffecpp/openpose/openpose/pose_deploy.prototxt";
 		std::string caffemodel_file = "I:/Develop/caffe/openpose_caffecpp/openpose/openpose/pose_iter_102000.caffemodel";
 		wrapper.reset(new CaffeWrapper<float>(prototxt_file, caffemodel_file));
-		input_blob.reset(new CaffeBlob<float>(1, hand_num_parts + 1, wrapper->im_h, wrapper->im_w));
+		input_blob.reset(new CaffeBlob<float>(1, hand_num_parts + 1, wrapper->getNetInputSize()[1], wrapper->getNetInputSize()[0]));
 		peak_blob.reset(new CaffeBlob<float>(1, hand_num_parts, hand_max_people, 3));
+		handDetector.reset(new HandDetectorWrist());
 	}
 
 
@@ -18,24 +19,8 @@ namespace op {
 
 	cv::Rect2f HandEngine::getHandRectangleByPose(vector<float>& armKeypoints, float thresh)
 	{
-		float wristScore = armKeypoints[2];
-		float elbowScore = armKeypoints[5];
-		float shoulderScore = armKeypoints[8];
-		//cout << wristScore << "," << elbowScore << "," << shoulderScore << endl;
-		if (wristScore < thresh || elbowScore < thresh || shoulderScore < thresh)
-			return cv::Rect2f(0,0,0,0);
-		cv::Rect2f hand;
-		hand.x = armKeypoints[0] + 0.3f*(armKeypoints[0] - armKeypoints[3]);
-		hand.y = armKeypoints[1] + 0.3f*(armKeypoints[1] - armKeypoints[4]);
-		float distWE = sqrt((armKeypoints[0] - armKeypoints[3])*(armKeypoints[0] - armKeypoints[3]) + (armKeypoints[1] - armKeypoints[4])*(armKeypoints[1] - armKeypoints[4]));
-		float distES = sqrt((armKeypoints[3] - armKeypoints[6])*(armKeypoints[3] - armKeypoints[6]) + (armKeypoints[4] - armKeypoints[7])*(armKeypoints[4] - armKeypoints[7]));
-		hand.width = 1.2f*max(distWE, 0.9f*distES);
-		hand.height = hand.width;
-		hand.x -= hand.width*0.5f;
-		hand.y -= hand.height*0.5f;
-		hand.x = max(0.0f, hand.x);
-		hand.y = max(0.0f, hand.y);
-		return hand;
+		handDetector->pImage = pImage;
+		return handDetector->detectHand(armKeypoints, thresh);
 	}
 
 	void HandEngine::getHandRectangles(const vector<float>& poseKeypoints, const vector<int>& shape)
@@ -73,7 +58,7 @@ namespace op {
 
 	cv::Mat HandEngine::cropFrame(cv::Rect & handRect, cv::Mat & im, const bool mirror)
 	{
-		cv::Size baseSize(wrapper->im_w, wrapper->im_h);
+		cv::Size baseSize(wrapper->getNetInputSize()[0], wrapper->getNetInputSize()[1]);
 		float ratio_w = 1.0* handRect.width / baseSize.width;
 		float ratio_h = 1.0* handRect.height / baseSize.height;
 		float ratio = ratio_w < ratio_h ? ratio_w : ratio_h;
@@ -183,11 +168,13 @@ namespace op {
 		cv::split(heatmap, heatmaps);
 
 		float* input_data = input_blob->data;
-		int offset = wrapper->im_h*wrapper->im_w;
+		int im_w = wrapper->getNetInputSize()[0];
+		int im_h = wrapper->getNetInputSize()[1];
+		int offset = im_w*im_h;
 
 		for (auto i = 0; i < blob.channels; ++i) {
-			cv::Mat heatmapOrigin(wrapper->im_h, wrapper->im_w, CV_32F, input_data);
-			cv::resize(heatmaps[i], heatmapOrigin, cv::Size(wrapper->im_w, wrapper->im_h), cv::INTER_CUBIC);
+			cv::Mat heatmapOrigin(im_h, im_w, CV_32F, input_data);
+			cv::resize(heatmaps[i], heatmapOrigin, cv::Size(im_w, im_h), cv::INTER_CUBIC);
 			//cv::normalize(heatmapOrigin, heatmapOrigin, 0, 1, NORM_MINMAX);
 			input_data += offset;
 		}
@@ -237,6 +224,7 @@ namespace op {
 	cv::Mat HandEngine::handKeypointsFromImage(cv::Mat & im, const vector<float>& poseKeypoints, const vector<int>& shape)
 	{
 		int numPeople=shape[0];
+		pImage = &im;
 		getHandRectangles(poseKeypoints, shape);
 
 		CaffeBlob<float> handKeypoints(numPeople,2,hand_num_parts,3);

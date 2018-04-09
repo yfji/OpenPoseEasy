@@ -11,6 +11,7 @@
 #include "caffeblob.h"
 #include <iostream>
 #include <vector>
+#include <map>
 #include <memory>
 using namespace std;
 using namespace caffe;
@@ -42,22 +43,32 @@ namespace op {
 		~CaffeWrapper();
 
 	public:
-		const int im_w = 256;// 656;
-		const int im_h = 256;// 368;
+		std::map<string, vector<int>> resolutions = {
+			make_pair<string, vector<int>>("tablet",{ 640,480 }),
+			make_pair<string, vector<int>>("phone",{ 1080,1920 })
+		};
+		const string platform = "tablet";
+
 		float scale_x;
 		float scale_y;
 
 		void reshape(const int width, const int height);
-		cv::Mat reshapeImage(const cv::Mat& image);
 		void forwardImage(const string& input_name, cv::Mat& im);
 		void forwardBlob(const string& input_name, CaffeBlob<Dtype>* net_input);
 		void getOutputBlob(const string& output_name, CaffeBlob<Dtype>* net_output);
 
+		inline vector<int> getNetInputSize() {
+			return { im_w,im_h };
+		}
 	private:
 		int num_channels_;
+		int im_w{ -1 };// 656;
+		int im_h{ 256 };// 368;
+
 		std::shared_ptr<Net<Dtype>> net_;
 		cv::Size input_size_;
 	private:
+		void adjustNetInputSize();
 		cv::Mat getImageAffine(cv::Mat& img, const cv::Size& baseSize);
 		cv::Mat getImagePadResize(cv::Mat& img, const cv::Size& baseSize);
 		cv::Mat getImageResize(cv::Mat& img, const cv::Size& baseSize);
@@ -71,7 +82,6 @@ namespace op {
 		const string& mean_file = "")
 	{
 		Caffe::set_mode(caffe::Caffe::GPU);
-
 		/* Load the network. */
 		net_.reset(new Net<float>(prototxt_file, caffe::TEST));
 		net_->CopyTrainedLayersFrom(caffemodel_file);
@@ -84,13 +94,16 @@ namespace op {
 			<< "Input layer should have 1 or 3 channels.";
 		input_size_ = cv::Size(input_layer->width(), input_layer->height());
 		if (input_size_.width == 1 && input_size_.height == 1) {	///adjust dynamically
-			input_layer->Reshape(1, num_channels_, im_h, im_w);
-			net_->Reshape();
+			adjustNetInputSize();
 		}
 		else {
-			CHECK_EQ(input_size_.width, im_w) << "Network width must be " << im_w;
-			CHECK_EQ(input_size_.height, im_h) << "Network height must be " << im_h;
+			im_w = input_size_.width;
+			im_h = input_size_.height;
+			//CHECK_EQ(input_size_.width, im_w) << "Network width must be " << im_w;
+			//CHECK_EQ(input_size_.height, im_h) << "Network height must be " << im_h;
 		}
+		input_layer->Reshape(1, num_channels_, im_h, im_w);
+		net_->Reshape();
 	}
 
 	template<typename Dtype>
@@ -104,14 +117,6 @@ namespace op {
 		Blob<float>* input_layer = net_->input_blobs()[0];
 		input_layer->Reshape(1, num_channels_, height, width);
 		net_.Reshape();
-	}
-
-	template<typename Dtype>
-	cv::Mat CaffeWrapper<Dtype>::reshapeImage(const cv::Mat & image)
-	{
-		cv::Mat reshapedImage;
-		cv::resize(image, reshapedImage, cv::Size(im_w, im_h), cv::INTER_CUBIC);
-		return reshapedImage;
 	}
 
 	template<typename Dtype>
@@ -177,11 +182,33 @@ namespace op {
 	}
 
 	template<typename Dtype>
+	inline void CaffeWrapper<Dtype>::adjustNetInputSize()
+	{
+		vector<int> netResolution = resolutions[platform];
+		if (im_w < 0 && im_h < 0) {
+			im_w = netResolution[0] / 16 * 16;
+			im_h = netResolution[1] / 16 * 16;
+		}
+		else if (im_w < 0) {
+			assert(im_h % 16 == 0);
+			im_w = (int)(im_h*1.0*netResolution[0] / netResolution[1] / 16 + 0.5) * 16;
+		}
+		else if(im_h<0){
+			assert(im_w % 16 == 0);
+			im_h = (int)(im_w*1.0*netResolution[1] / netResolution[0] / 16 + 0.5) * 16;
+		}
+		else {
+			im_w = im_w / 16 * 16;
+			im_h = im_h / 16 * 16;
+		}
+	}
+
+	template<typename Dtype>
 	inline cv::Mat CaffeWrapper<Dtype>::getImageAffine(cv::Mat & img, const cv::Size & baseSize)
 	{
 		float ratio_w = 1.0* img.cols / baseSize.width;
 		float ratio_h = 1.0* img.rows / baseSize.height;
-		float ratio = ratio_w > ratio_h ? ratio_w : ratio_h;
+		float ratio = ratio_w < ratio_h ? ratio_w : ratio_h;	//align the smaller side
 		cv::Mat affineMat = cv::Mat::eye(2, 3, CV_32F);
 		cv::Mat affined;
 		affineMat.at<float>(0, 0) = ratio;
@@ -189,7 +216,7 @@ namespace op {
 
 		cv::warpAffine(img, affined, affineMat, baseSize, 
 			CV_INTER_LINEAR | CV_WARP_INVERSE_MAP, cv::BORDER_CONSTANT, cv::Scalar{ 0,0,0 });
-		scale_x = 1 / ratio;
+		scale_x = ratio;
 		scale_y = scale_x;
 		return affined;
 	}
@@ -197,7 +224,7 @@ namespace op {
 	template<typename Dtype>
 	cv::Mat CaffeWrapper<Dtype>::getImagePadResize(cv::Mat & img, const cv::Size & baseSize)
 	{
-		//align the shorter edge to the baseSize
+		//align the longer edge to the baseSize
 		int bw = baseSize.width;
 		int bh = baseSize.height;
 		int h = img.rows;
@@ -206,25 +233,14 @@ namespace op {
 		cv::Mat reshape_(bh, bw, img.type());
 		reshape_.setTo(0.0f);
 
-		float scale_;
-		float ratio1 = 1.0*w / h;
-		float ratio2 = 1.0*bw / bh;
-		Rect roi;
-	
-		if (ratio1 > ratio2) {	//align w
-			scale_ = 1.0*bw / w;
-			int nh = int(scale_*h);
-			roi=Rect(0, 0, bw, nh);
-		}
-		else {
-			scale_ = 1.0*bh / h;
-			int nw = int(scale_*w);
-			roi=Rect(0, 0, nw, bh);
-		}
+		float scale_w = 1.0*w / bw;	//align w
+		float scale_h = 1.0*h / bh;	//align h
+		float scale_ = scale_w > scale_h ? scale_w : scale_h;
+		Rect roi(0, 0, (int)(w / scale_), (int)(h / scale_));
 		cv::Mat roi_ = reshape_(roi);
 		cv::resize(img, roi_, cv::Size(roi.width,roi.height), cv::INTER_CUBIC);
 		scale_x = scale_;
-		scale_y = scale_;
+		scale_y = scale_x;
 		return reshape_;
 	}
 

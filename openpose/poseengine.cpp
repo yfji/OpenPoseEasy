@@ -472,7 +472,7 @@ namespace op {
 	cv::Mat PoseEngine::keypointsFromImage(cv::Mat & im, vector<float>& keypoints, vector<int>& keypointShape)
 	{
 		CaffeBlob<float> blob;
-		cv::Size baseSize(wrapper->im_w, wrapper->im_h);
+		cv::Size baseSize(wrapper->getNetInputSize()[0], wrapper->getNetInputSize()[1]);
 		//cv::Mat temp=wrapper->reshapeImage(im);
 		cv::Mat canvas = im.clone();
 		wrapper->forwardImage("image", im);
@@ -502,10 +502,10 @@ namespace op {
 		shape[2]: 3
 		*/
 		//renderPoseKeypointsCpu(canvas, keypoints, keypointShape, 0.05, 1.0/wrapper->scale_x, 1.0/wrapper->scale_y);
-		renderKeypointsOnly(canvas, keypoints, keypointShape, POSE_COCO_COLORS_RENDER, 0.05, 1.0 / wrapper->scale_x, 1.0 / wrapper->scale_y);
+		renderKeypointsOnly(canvas, keypoints, keypointShape, POSE_COCO_COLORS_RENDER, 0.05, wrapper->scale_x, wrapper->scale_y);
 		for (auto i = 0,j=1; i < keypoints.size() && j<keypoints.size(); i+=3,j+=3) {
-			keypoints[i] /= wrapper->scale_x;
-			keypoints[j] /= wrapper->scale_y;
+			keypoints[i] *= wrapper->scale_x;
+			keypoints[j] *= wrapper->scale_y;
 		}
 		return canvas;
 	}

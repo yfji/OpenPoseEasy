@@ -152,6 +152,9 @@
   <ItemGroup>
     <ClInclude Include="caffeblob.h" />
     <ClInclude Include="caffewrapper.h" />
+    <ClInclude Include="handdetector.h" />
+    <ClInclude Include="handdetectorarm.h" />
+    <ClInclude Include="handdetectorwrist.h" />
     <ClInclude Include="handengine.h" />
     <ClInclude Include="poseengine.h" />
     <ClInclude Include="stdafx.h" />
@@ -160,6 +163,9 @@
   <ItemGroup>
     <ClCompile Include="caffeblob.cpp" />
     <ClCompile Include="caffewrapper.cpp" />
+    <ClCompile Include="handdetector.cpp" />
+    <ClCompile Include="handdetectorarm.cpp" />
+    <ClCompile Include="handdetectorwrist.cpp" />
     <ClCompile Include="handengine.cpp" />
     <ClCompile Include="openpose.cpp" />
     <ClCompile Include="poseengine.cpp" />

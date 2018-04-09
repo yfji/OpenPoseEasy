@@ -36,6 +36,15 @@
     <ClInclude Include="handengine.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="handdetector.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="handdetectorarm.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="handdetectorwrist.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -54,6 +63,15 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="handengine.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="handdetector.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="handdetectorarm.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="handdetectorwrist.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

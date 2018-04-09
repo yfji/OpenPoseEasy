@@ -1,4 +1,6 @@
 #pragma once
+#include "handdetectorarm.h"
+#include "handdetectorwrist.h"
 #include "caffewrapper.h"
 #include <array>
 
@@ -35,12 +37,15 @@ namespace op {
 
 	private:
 		std::shared_ptr<CaffeWrapper<float>> wrapper;
+		std::shared_ptr<HandDetector> handDetector;
+
 		std::vector<std::array<cv::Rect2f, 2>> handRectangles;
 		const std::vector<unsigned int> HAND_PAIRS_RENDER{ HAND_PAIRS_RENDER_GPU };
 		const std::vector<float> HAND_COLORS_RENDER{ HAND_COLORS_RENDER_GPU };
 		const int hand_num_parts = 21;
 		const int hand_max_people = 10;	//must be GE 2
 		cv::Mat affineMatrix;
+		cv::Mat* pImage;
 		cv::Rect2f getHandRectangleByPose(vector<float>& armKeypoints, float thresh=0.05);
 		
 		std::shared_ptr<CaffeBlob<float>> input_blob;
