@@ -1,4 +1,4 @@
-input: "image"
+input: "data"
 input_dim: 1 # Original: 2
 input_dim: 3 # It crashes if not left to 3
 input_dim: 192 # Original: 368
@@ -6,7 +6,7 @@ input_dim: 192 # Original: 368
 layer {
   name: "conv1_1"
   type: "Convolution"
-  bottom: "image"
+  bottom: "data"
   top: "conv1_1"
   param {
     lr_mult: 1.0

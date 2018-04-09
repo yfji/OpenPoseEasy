@@ -150,14 +150,14 @@ void HandDetectorWrist::regionGrowRGB(cv::Mat& img, int seedX, int seedY) {
 	handRect.width = min(pImage->cols - handRect.x, handRect.width * 2);
 	handRect.height = min(pImage->rows - handRect.y, handRect.height * 2);
 
-	cv::Mat handImg = pImage->clone();
-	cv::rectangle(handImg, handRect, cv::Scalar(0, 0, 255), 2);
-	cv::Mat canvas = cv::Mat::zeros(h, w, CV_8UC1);
-	uchar* ptr_canvas = canvas.data;
-	for (auto i = 0; i < MAX_N; ++i) {
-		if (used[i])
-			ptr_canvas[i] = 255;
-	}
-	cv::imshow("rect", handImg);
-	cv::imshow("mask", canvas);
+	//cv::Mat handImg = pImage->clone();
+	//cv::rectangle(handImg, handRect, cv::Scalar(0, 0, 255), 2);
+	//cv::Mat canvas = cv::Mat::zeros(h, w, CV_8UC1);
+	//uchar* ptr_canvas = canvas.data;
+	//for (auto i = 0; i < MAX_N; ++i) {
+	//	if (used[i])
+	//		ptr_canvas[i] = 255;
+	//}
+	//cv::imshow("rect", handImg);
+	//cv::imshow("mask", canvas);
 }

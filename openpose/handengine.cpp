@@ -72,9 +72,9 @@ namespace op {
 		affineMat.at<float>(1, 2) = handRect.y;
 		affineMatrix = affineMat.clone();
 		cv::warpAffine(im, affined, affineMat, baseSize,
-			CV_INTER_LINEAR | CV_WARP_INVERSE_MAP, cv::BORDER_CONSTANT, cv::Scalar{ 0,0,0 });
+			CV_INTER_LINEAR | CV_WARP_INVERSE_MAP, cv::BORDER_CONSTANT, cv::Scalar{ 128,128,128 });
 		//cv::imshow("rect", im(handRect));
-		//cv::imshow("affined", affined);
+		//cv::imshow("handaffined", affined);
 		return affined;
 	}
 
@@ -155,9 +155,9 @@ namespace op {
 		}
 	}
 
-	void HandEngine::detectHandKeypoints(cv::Mat hand_im)
+	void HandEngine::detectHandKeypoints(cv::Mat& hand_im)
 	{
-		wrapper->forwardImage("image", hand_im);
+		wrapper->forwardImage("data", hand_im);
 		CaffeBlob<float> blob;
 		wrapper->getOutputBlob("net_output", &blob);
 		cv::Mat heatmap = blob.ToImage();
@@ -178,7 +178,7 @@ namespace op {
 			//cv::normalize(heatmapOrigin, heatmapOrigin, 0, 1, NORM_MINMAX);
 			input_data += offset;
 		}
-		//cv::Mat im_heatmap(wrapper->im_h, wrapper->im_w, CV_32F, input_blob->data+10*offset);
+		//cv::Mat im_heatmap(wrapper->getNetInputSize()[1], wrapper->getNetInputSize()[0], CV_32F, input_blob->data+10*offset);
 		//cv::normalize(im_heatmap, im_heatmap, 0, 1, NORM_MINMAX);
 		//cv::imshow("heatmap",im_heatmap);
 		findPeaks(input_blob.get(), peak_blob.get());
@@ -221,7 +221,7 @@ namespace op {
 		}
 	}
 
-	cv::Mat HandEngine::handKeypointsFromImage(cv::Mat & im, const vector<float>& poseKeypoints, const vector<int>& shape)
+	void HandEngine::handKeypointsFromImage(cv::Mat & im, cv::Mat& canvas, const vector<float>& poseKeypoints, const vector<int>& shape)
 	{
 		int numPeople=shape[0];
 		pImage = &im;
@@ -243,8 +243,6 @@ namespace op {
 				keypoint_ptr += offset;
 			}
 		}
-		cv::Mat canvas = im.clone();
 		renderHandKeypointsCpu(canvas, &handKeypoints, 0.05);
-		return canvas;
 	}
 }

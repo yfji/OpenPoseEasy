@@ -48,7 +48,7 @@ namespace op {
 			make_pair<string, vector<int>>("phone",{ 1080,1920 })
 		};
 		const string platform = "tablet";
-
+		
 		float scale_x;
 		float scale_y;
 
@@ -62,9 +62,17 @@ namespace op {
 		}
 	private:
 		int num_channels_;
-		int im_w{ -1 };// 656;
+		int im_w{ 256 };// 656;
 		int im_h{ 256 };// 368;
-
+		/*
+		align shorter:
+			align the shorter side of the image to the baseSize
+			May produce crop if the longer side surpass the baseSize
+		align longer:
+			align the longer side of the image to the baseSize
+			May pad with black pixels if the shorter side does not match the baseSize
+		*/
+		bool align_shorter{ false };
 		std::shared_ptr<Net<Dtype>> net_;
 		cv::Size input_size_;
 	private:
@@ -123,11 +131,12 @@ namespace op {
 	void CaffeWrapper<Dtype>::forwardImage(const string& input_name, cv::Mat & im)
 	{
 		cv::Mat inputImage;
+		cv::Mat temp=im;
 		if (im.cols != im_w || im.rows != im_h) {
-			im = getImageAffine(im, cv::Size(im_w, im_h));
-			//imshow("affine", im);
+			temp = getImageAffine(im, cv::Size(im_w, im_h));
 		}
-		im.convertTo(inputImage, CV_32F, 1.0 / 256.0, -0.5);
+		//imshow(input_name, temp);
+		temp.convertTo(inputImage, CV_32F, 1.0 / 256.0, -0.5);
 		CHECK(net_->has_blob(input_name)) << input_name << " does not exist. Please check";
 
 		boost::shared_ptr<Blob<Dtype>> input_layer = net_->blob_by_name(input_name);
@@ -208,14 +217,18 @@ namespace op {
 	{
 		float ratio_w = 1.0* img.cols / baseSize.width;
 		float ratio_h = 1.0* img.rows / baseSize.height;
-		float ratio = ratio_w < ratio_h ? ratio_w : ratio_h;	//align the smaller side
+		float ratio;
+		if(align_shorter)
+			ratio=ratio_w < ratio_h ? ratio_w : ratio_h;	//align the smaller side
+		else
+			ratio = ratio_w > ratio_h ? ratio_w : ratio_h;
 		cv::Mat affineMat = cv::Mat::eye(2, 3, CV_32F);
 		cv::Mat affined;
 		affineMat.at<float>(0, 0) = ratio;
 		affineMat.at<float>(1, 1) = ratio;
 
 		cv::warpAffine(img, affined, affineMat, baseSize, 
-			CV_INTER_LINEAR | CV_WARP_INVERSE_MAP, cv::BORDER_CONSTANT, cv::Scalar{ 0,0,0 });
+			CV_INTER_LINEAR | CV_WARP_INVERSE_MAP, cv::BORDER_CONSTANT, cv::Scalar{ 128,128,128 });
 		scale_x = ratio;
 		scale_y = scale_x;
 		return affined;
@@ -231,11 +244,15 @@ namespace op {
 		int w = img.cols;
 
 		cv::Mat reshape_(bh, bw, img.type());
-		reshape_.setTo(0.0f);
+		reshape_.setTo(128);
 
 		float scale_w = 1.0*w / bw;	//align w
 		float scale_h = 1.0*h / bh;	//align h
-		float scale_ = scale_w > scale_h ? scale_w : scale_h;
+		float scale_;
+		if(align_shorter)
+			scale_= scale_w < scale_h ? scale_w : scale_h;
+		else
+			scale_ = scale_w > scale_h ? scale_w : scale_h;
 		Rect roi(0, 0, (int)(w / scale_), (int)(h / scale_));
 		cv::Mat roi_ = reshape_(roi);
 		cv::resize(img, roi_, cv::Size(roi.width,roi.height), cv::INTER_CUBIC);
@@ -249,8 +266,8 @@ namespace op {
 	{
 		cv::Mat reshape_;
 		cv::resize(img, reshape_, baseSize, cv::INTER_CUBIC);
-		scale_x = 1.0*baseSize.width / img.cols;
-		scale_y = 1.0*baseSize.height / img.rows;
+		scale_x = 1.0*img.cols / baseSize.width;
+		scale_y = 1.0*img.rows / baseSize.height;
 		return reshape_;
 	}
 

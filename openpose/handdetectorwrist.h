@@ -10,7 +10,6 @@ public:
 	virtual ~HandDetectorWrist();
 
 private:
-	const int gray_thresh = 20;
 	int stack[MAX_N];
 	char used[MAX_N];
 	int top;

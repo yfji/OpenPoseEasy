@@ -74,7 +74,7 @@ namespace op {
 			float scale_y,
 			const bool blendOriginalFrame = true);
 		
-		cv::Mat keypointsFromImage(cv::Mat& im, vector<float>& keypoints, vector<int>& keypointShape);
+		void keypointsFromImage(cv::Mat& im, cv::Mat& canvas, vector<float>& keypoints, vector<int>& keypointShape);
 	
 	private:		
 		inline float fastMax(float a, float b) {

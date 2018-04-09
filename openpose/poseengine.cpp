@@ -468,13 +468,11 @@ namespace op {
 			}
 		}
 	}
-
-	cv::Mat PoseEngine::keypointsFromImage(cv::Mat & im, vector<float>& keypoints, vector<int>& keypointShape)
+	void PoseEngine::keypointsFromImage(cv::Mat & im, cv::Mat& canvas, vector<float>& keypoints, vector<int>& keypointShape)
 	{
 		CaffeBlob<float> blob;
 		cv::Size baseSize(wrapper->getNetInputSize()[0], wrapper->getNetInputSize()[1]);
 		//cv::Mat temp=wrapper->reshapeImage(im);
-		cv::Mat canvas = im.clone();
 		wrapper->forwardImage("image", im);
 		wrapper->getOutputBlob("net_output", &blob);
 
@@ -507,6 +505,5 @@ namespace op {
 			keypoints[i] *= wrapper->scale_x;
 			keypoints[j] *= wrapper->scale_y;
 		}
-		return canvas;
 	}
 }

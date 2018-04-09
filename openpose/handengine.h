@@ -57,14 +57,14 @@ namespace op {
 		cv::Mat cropFrame(cv::Rect& handRect, cv::Mat& im, const bool mirror=false);
 		void findPeaks(CaffeBlob<float>* heatmaps, CaffeBlob<float>* out, float thresh = 0.05);
 		void connectKeypoints(float* handKeypoints);
-		void detectHandKeypoints(cv::Mat hand_im);
+		void detectHandKeypoints(cv::Mat& hand_im);
 		void renderHandKeypointsCpu(Mat& frame,
 			CaffeBlob<float>* blobKeypoints,
 			const float renderThreshold,
 			float scale_x=1.0,
 			float scale_y=1.0);
 
-		cv::Mat handKeypointsFromImage(cv::Mat& im, const vector<float>& poseKeypoints, const vector<int>& shape);
+		void handKeypointsFromImage(cv::Mat& im, cv::Mat& canvas, const vector<float>& poseKeypoints, const vector<int>& shape);
 	};
 
 }

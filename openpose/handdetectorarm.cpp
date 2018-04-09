@@ -24,7 +24,7 @@ cv::Rect2f HandDetectorArm::detectHand(vector<float>& armKeypoints, float thresh
 	hand.y = armKeypoints[1] + 0.3f*(armKeypoints[1] - armKeypoints[4]);
 	float distWE = sqrt((armKeypoints[0] - armKeypoints[3])*(armKeypoints[0] - armKeypoints[3]) + (armKeypoints[1] - armKeypoints[4])*(armKeypoints[1] - armKeypoints[4]));
 	float distES = sqrt((armKeypoints[3] - armKeypoints[6])*(armKeypoints[3] - armKeypoints[6]) + (armKeypoints[4] - armKeypoints[7])*(armKeypoints[4] - armKeypoints[7]));
-	hand.width = 1.2f*max(distWE, 0.9f*distES);
+	hand.width = 1.5f*max(distWE, 0.9f*distES);
 	hand.height = hand.width;
 	hand.x -= hand.width*0.5f;
 	hand.y -= hand.height*0.5f;
