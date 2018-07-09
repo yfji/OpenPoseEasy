@@ -1,4 +1,4 @@
-input: "data"
+input: "image"
 input_dim: 1
 input_dim: 3
 input_dim: 256
@@ -6,7 +6,7 @@ input_dim: 256
 layer {
   name: "conv1_1"
   type: "Convolution"
-  bottom: "data"
+  bottom: "image"
   top: "conv1_1"
   param {
     lr_mult: 1.0

@@ -2,7 +2,7 @@ project(OpenPose)
 
 cmake_minimum_required(VERSION 2.6)
 aux_source_directory(${PROJECT_SOURCE_DIR}/openpose DIR_SRCS)
-add_definitions("-Wall -std=c++11")
+add_definitions("-Wall -g -std=c++11")
 
 include_directories(
 	/usr/include/

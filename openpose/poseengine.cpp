@@ -497,8 +497,8 @@ namespace op {
 		shape[1]: num_bodyparts(20)
 		shape[2]: 3
 		*/
-		//renderPoseKeypointsCpu(canvas, keypoints, keypointShape, 0.05, 1.0/wrapper->scale_x, 1.0/wrapper->scale_y);
-		renderKeypointsOnly(canvas, keypoints, keypointShape, POSE_COCO_COLORS_RENDER, 0.05, wrapper->scale_x, wrapper->scale_y);
+		renderPoseKeypointsCpu(canvas, keypoints, keypointShape, 0.05, wrapper->scale_x, wrapper->scale_y);
+		//renderKeypointsOnly(canvas, keypoints, keypointShape, POSE_COCO_COLORS_RENDER, 0.05, wrapper->scale_x, wrapper->scale_y);
 		for (auto i = 0,j=1; i < keypoints.size() && j<keypoints.size(); i+=3,j+=3) {
 			keypoints[i] *= wrapper->scale_x;
 			keypoints[j] *= wrapper->scale_y;
