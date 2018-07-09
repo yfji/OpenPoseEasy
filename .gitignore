@@ -1,0 +1,6 @@
+*.so
+OpenPose
+*.caffemodel
+*.dll.a
+*.zip
+*~
