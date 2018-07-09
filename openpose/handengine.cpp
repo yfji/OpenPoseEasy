@@ -9,7 +9,7 @@ namespace op {
 		wrapper.reset(new CaffeWrapper<float>(prototxt_file, caffemodel_file));
 		input_blob.reset(new CaffeBlob<float>(1, hand_num_parts + 1, wrapper->getNetInputSize()[1], wrapper->getNetInputSize()[0]));
 		peak_blob.reset(new CaffeBlob<float>(1, hand_num_parts, hand_max_people, 3));
-		handDetector.reset(new HandDetectorWrist());
+		handDetector.reset(new HandDetectorArm());
 	}
 
 

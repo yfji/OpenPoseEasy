@@ -38,7 +38,7 @@ namespace op {
 	{
 	public:
 		CaffeWrapper(const string& prototxt_file,
-			const string& caffemodel_file,
+			const string& caffemodel_file = "",
 			const string& mean_file = "");
 		~CaffeWrapper();
 
@@ -87,7 +87,7 @@ namespace op {
 	template<typename Dtype>
 	CaffeWrapper<Dtype>::CaffeWrapper(const string& prototxt_file,
 		const string& caffemodel_file,
-		const string& mean_file = "")
+		const string& mean_file)
 	{
 		Caffe::set_mode(caffe::Caffe::GPU);
 		/* Load the network. */

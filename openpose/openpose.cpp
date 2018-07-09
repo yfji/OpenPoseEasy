@@ -22,11 +22,12 @@ int main()
 		vector<float> keypoints;
 		vector<int> keypointShape;
 		canvas = frame.clone();
+
 		poseEngine.keypointsFromImage(frame, canvas, keypoints, keypointShape);
 		//cout << "num people: " << keypointShape[0] << endl;
 		//cout << "num keypoints: " << keypointShape[1] << endl;
 		//cout << "num channels: " << keypointShape[2] << endl;
-		handEngine.handKeypointsFromImage(frame, canvas, keypoints, keypointShape);
+		//handEngine.handKeypointsFromImage(frame, canvas, keypoints, keypointShape);
 		cv::imshow("kp", canvas);
 		key = cv::waitKey(10);
 		if (key == 27)
